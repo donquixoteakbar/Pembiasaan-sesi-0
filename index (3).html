@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1b3623">
+<title>Jurnal Hafalan Qur'an Pro</title>
+<!-- Library untuk mengubah tabel menjadi Foto -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- Library Three.js untuk Animasi Latar Belakang -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root {
+  --bg: #f4f1e8; --paper: #fffdf7; --ink: #20241f; --muted: #697064;
+  --line: #d9d4c7; --green: #1b3623; --green-light: #2a5235; --gold: #b08a45;
+  --good: #c8e6c9; --mid: #bbdefb; --bad: #ffcdd2; --blue: #e0e0e0;
+  --nav-bg: #ffffff;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: system-ui, -apple-system, sans-serif; }
+html, body { margin: 0; height: 100%; color: var(--ink); background: var(--bg); overflow: hidden; }
+button, input, select, textarea { font: inherit; outline: none; }
+button { border: 0; cursor: pointer; transition: 0.1s; }
+button:active { transform: scale(0.95); }
+
+.hidden { display: none !important; }
+.app-container { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ================= HALAMAN SETUP ================= */
+#setupScreen { height: 100%; overflow-y: auto; padding: 20px; background: linear-gradient(135deg, var(--green), var(--green-light)); color: white; display: flex; flex-direction: column; align-items: center; }
+.setup-box { background: var(--paper); color: var(--ink); width: 100%; max-width: 400px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); margin-bottom: 20px; }
+.arab { font-size: 24px; text-align: center; color: var(--gold); margin-bottom: 5px; font-weight: bold; }
+.quote { text-align: center; font-style: italic; font-size: 13px; color: #666; margin-bottom: 20px; }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: var(--green); }
+.form-control { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 10px; background: #fff; font-size:14px; }
+textarea.form-control { resize: vertical; min-height: 80px; }
+.btn-primary { width: 100%; padding: 15px; background: var(--green); color: white; border-radius: 10px; font-weight: bold; font-size: 16px; margin-top: 10px; }
+.btn-small { padding: 8px 12px; background: var(--green); color: white; border-radius: 8px; font-size: 12px; font-weight: bold; }
+
+.photo-upload { display: flex; align-items: center; gap: 10px; }
+.photo-preview { width: 60px; height: 60px; border-radius: 10px; background: #eee; object-fit: cover; border: 2px solid var(--line); }
+.file-btn { background: #e0e0e0; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; color: var(--ink); }
+
+/* ================= HEADER UTAMA ================= */
+header { background: var(--green); color: white; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 10; position: relative; overflow: hidden; }
+#canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.header-left { display: flex; align-items: center; gap: 10px; position: relative; z-index: 2; }
+.header-photo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold); background: #fff; }
+.header-titles b { display: block; font-size: 15px; line-height: 1.2; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+.header-titles small { font-size: 11px; color: #a3c4ab; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+.date-picker-wrap { display: flex; flex-direction: column; align-items: flex-end; position: relative; z-index: 2; }
+.date-picker-wrap label { font-size: 10px; color: var(--gold); font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+.date-picker { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 5px 8px; border-radius: 8px; font-size: 12px; font-weight: bold; backdrop-filter: blur(2px); }
+
+/* ================= WORKSPACE (TABEL) ================= */
+.workspace { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; padding: 0; background: var(--bg); position: relative; }
+.sheet-wrapper { padding: 15px; width: max-content; min-width: 100%; box-sizing: border-box; display: flex; flex-direction: column; }
+.sheet { background: var(--paper); border-radius: 8px; width: 100%; box-shadow: 0 4px 10px rgba(0,0,0,0.1); padding: 15px; display: flex; flex-direction: column; flex: 1; }
+
+/* KOP SURAT UNTUK EXPORT FOTO */
+.export-header { display: none; margin-bottom: 15px; border-bottom: 3px double var(--ink); padding-bottom: 10px; flex-direction: column; background: #fff; }
+.exporting .export-header { display: flex; }
+.kop-atas { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.kop-kiri { width: 90px; display: flex; justify-content: flex-start; }
+.kop-logo { width: 80px; height: 80px; object-fit: contain; }
+.kop-tengah { flex: 1; text-align: center; padding: 0 10px; display: flex; flex-direction: column; justify-content: center; }
+.kop-tengah h1 { margin: 0; font-size: 24px; color: var(--ink); text-transform: uppercase; font-family: 'Times New Roman', Times, serif; font-weight: bold; line-height: 1.1; }
+.kop-tengah p.alamat { margin: 4px 0 0 0; font-size: 11px; color: #444; font-family: Arial, sans-serif; }
+.kop-tengah p.judul { margin: 8px 0 0 0; font-size: 14px; color: var(--ink); font-weight: bold; border-top: 1px solid #ccc; padding-top: 6px; }
+.kop-kanan { width: 90px; display: flex; flex-direction: column; align-items: center; }
+.kop-foto { width: 65px; height: 80px; border-radius: 6px; border: 1px solid var(--line); object-fit: cover; }
+.kop-guru-name { font-size: 10px; font-weight: bold; margin-top: 4px; text-align: center; line-height: 1.1; }
+.kop-bawah { display: flex; justify-content: flex-start; font-size: 13px; font-weight: bold; border-top: 1px solid var(--line); padding-top: 6px; font-family: Arial, sans-serif; color: var(--ink); }
+
+/* OPTIMASI UKURAN KOLOM TABEL */
+table { border-collapse: separate; border-spacing: 0; font-size: 12px; table-layout: fixed; width: max-content; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+th, td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); height: 42px; text-align: center; padding: 0; background: #fff; }
+th { background: #eee9dd; font-weight: 800; font-size: 12px; }
+th.surah { font-family: "Georgia", serif; background: #e5eadf; color: #294633; font-size: 13px; }
+
+/* STICKY COLUMNS & HEADERS DENGAN Z-INDEX RAPI (Nama menutupi Header) */
+thead th { position: sticky; top: 0; z-index: 2; background: #eee9dd; } /* Z-index dikecilkan */
+thead th.surah { background: #e5eadf; }
+thead th.cell-head { top: 42px; }
+
+.num-head, .num-cell { position: sticky; left: 0; width: 35px; min-width: 35px; background: #eee9dd; }
+.num-head { top: auto !important; z-index: 3; } 
+.num-cell { background: #fffdf7; z-index: 4; } /* Z-index lebih tinggi agar menutupi Surat/Ayat di atasnya saat turun */
+
+.name-head, .name-cell { position: sticky; left: 35px; width: 95px; min-width: 95px; text-align: left; padding: 0 8px; }
+.name-head { top: auto !important; background: #eee9dd; z-index: 3; box-shadow: 2px 0 5px rgba(0,0,0,0.08); }
+.name-cell { background: #fffdf7; box-shadow: 2px 0 5px rgba(0,0,0,0.08); cursor: pointer; z-index: 4; } /* Z-index lebih tinggi agar menutupi Surat/Ayat di atasnya saat turun */
+
+.mark-head { width: 44px; min-width: 44px; }
+
+/* SAAT EXPORT FOTO: MATIKAN SEMUA STICKY AGAR FOTO UTUH */
+.exporting table { table-layout: auto; }
+.exporting thead th { position: static !important; }
+.exporting .num-head, .exporting .num-cell { position: static !important; width: 30px !important; min-width: 30px !important; padding: 0 2px !important; }
+.exporting .name-head, .exporting .name-cell { position: static !important; box-shadow: none !important; width: auto !important; min-width: 180px !important; white-space: nowrap !important; padding: 0 10px !important; }
+.exporting .student-name span.nama-ekspor { max-width: none !important; overflow: visible !important; white-space: nowrap !important; }
+.exporting .nama-tampil { display: none !important; }
+.exporting .nama-ekspor { display: inline-block !important; }
+
+/* KOTAK NILAI */
+.cell { width: 44px; min-width: 44px; position: relative; cursor: pointer; user-select: none; font-size: 17px; font-weight: bold; }
+.cell.good { background: var(--good); color: #1b5e20; }
+.cell.mid { background: var(--mid); color: #0d47a1; }
+.cell.bad { background: var(--bad); color: #b71c1c; }
+.cell.note { background: var(--blue); color: #424242; font-size: 14px;}
+.cell:active { filter: brightness(0.9); }
+
+.student-name { font-weight: 700; white-space: nowrap; display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+.student-name span { display: inline-block; max-width: 65px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subtext { font-size: 9px; color: var(--muted); margin-top: 2px; }
+
+/* LEGENDA (KETERANGAN NILAI DI BAWAH) */
+.export-footer { display: none; border-top: 2px solid var(--line); margin-top: 15px; padding-top: 10px; flex-wrap: wrap; gap: 15px; justify-content: center; font-size: 12px; color: var(--ink); background: #fff; }
+.exporting .export-footer { display: flex; }
+.leg-item { display: flex; align-items: center; gap: 6px; font-weight: bold; }
+.leg-mark { font-weight: bold; font-size: 15px; width: 22px; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(0,0,0,0.1); }
+
+/* Warna Legenda Manual agar ikut difoto sempurna */
+.leg-mark.good { background: #c8e6c9 !important; color: #1b5e20 !important; border-color: #a5d6a7 !important; }
+.leg-mark.mid { background: #bbdefb !important; color: #0d47a1 !important; border-color: #90caf9 !important; }
+.leg-mark.bad { background: #ffcdd2 !important; color: #b71c1c !important; border-color: #ef9a9a !important; }
+.leg-mark.note { background: #e0e0e0 !important; color: #424242 !important; border-color: #bdbdbd !important; }
+
+/* ================= BOTTOM NAVIGATION BAR ================= */
+.bottom-bar { background: var(--nav-bg); height: 65px; flex: 0 0 65px; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--line); box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 20; padding-bottom: max(0px, env(safe-area-inset-bottom)); }
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); font-size: 11px; font-weight: 600; gap: 4px; padding: 5px; background: transparent; }
+.nav-item.action { color: var(--green); }
+.nav-item .icon { font-size: 22px; line-height: 1; }
+.nav-item:active { transform: scale(0.9); background: #f0f0f0; border-radius: 10px; }
+
+/* ================= MODAL & POPUP ================= */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 30; display: none; align-items: center; justify-content: center; padding: 15px; backdrop-filter: blur(2px); }
+.overlay.show { display: flex; }
+.modal { background: var(--paper); width: 100%; max-width: 380px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); overflow: hidden; transform: scale(0.9); opacity: 0; transition: 0.2s; display: flex; flex-direction: column; max-height: 90vh; }
+.overlay.show .modal { transform: scale(1); opacity: 1; }
+
+.modal-head { padding: 15px; background: #f2eee4; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+.modal-head b { font-size: 16px; color: var(--green); }
+.close-btn { background: #ded9cd; width: 30px; height: 30px; border-radius: 8px; font-weight: bold; color: #333; display: flex; align-items: center; justify-content: center; }
+.modal-body { padding: 15px; overflow-y: auto; }
+
+.card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 15px; margin-bottom: 12px; }
+.btn { padding: 12px; border-radius: 8px; background: var(--green); color: white; font-weight: bold; text-align: center; width: 100%; margin-bottom: 8px; }
+.btn.danger { background: #a94a43; }
+.btn.alt { background: #ddd7c9; color: var(--ink); }
+
+.toast { position: fixed; left: 50%; bottom: 85px; transform: translateX(-50%) translateY(20px); background: #20251f; color: white; padding: 12px 24px; border-radius: 30px; opacity: 0; pointer-events: none; transition: 0.3s; z-index: 50; font-size: 14px; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.3); white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.surah-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding: 8px 0; }
+
+.loading-screen { position: fixed; inset: 0; background: var(--green); color: white; z-index: 100; display: none; align-items: center; justify-content: center; flex-direction: column; font-weight: bold; font-size: 16px; text-align: center; padding: 20px;}
+.spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid white; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* CSS Panduan Detail */
+.guide-step { margin-bottom: 18px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+.guide-step h4 { margin: 0 0 5px 0; color: var(--green); font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.guide-step p { margin: 0; font-size: 13px; color: #444; line-height: 1.5; padding-left: 28px; }
+</style>
+</head>
+<body>
+
+<!-- HALAMAN SETUP AWAL -->
+<div id="setupScreen">
+  <div class="arab">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم</div>
+  <div class="quote">Aplikasi Jurnal Hafalan<br>Pengembang: Ali Akbar</div>
+  
+  <div class="setup-box">
+    <div class="form-group">
+      <label>Logo Sekolah (Opsional)</label>
+      <div class="photo-upload">
+        <img id="previewLogo" class="photo-preview" src="data:image/svg+xml;utf8,<svg viewBox='0 0 24 24' fill='%23ccc'><path d='M12 2L2 12h3v8h14v-8h3L12 2z'/></svg>">
+        <button class="file-btn" onclick="document.getElementById('inpLogo').click()">Pilih Logo</button>
+        <input type="file" id="inpLogo" accept="image/*" class="hidden" onchange="prosesGambar(event, 'logo')">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Foto Guru (Opsional)</label>
+      <div class="photo-upload">
+        <img id="previewFoto" class="photo-preview" src="data:image/svg+xml;utf8,<svg viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>">
+        <button class="file-btn" onclick="document.getElementById('inpFoto').click()">Pilih Foto</button>
+        <input type="file" id="inpFoto" accept="image/*" class="hidden" onchange="prosesGambar(event, 'foto')">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Nama Guru Pengajar</label>
+      <input type="text" id="inpGuru" class="form-control" placeholder="Contoh: Ustadz Ali Akbar">
+    </div>
+    <div class="form-group">
+      <label>Nama Instansi / Sekolah</label>
+      <input type="text" id="inpSekolah" class="form-control" placeholder="Contoh: MI Plus Darul Falah">
+    </div>
+    <div class="form-group">
+      <label>Alamat Sekolah (Opsional)</label>
+      <textarea id="inpAlamat" class="form-control" placeholder="Contoh: Jl. Raya Pendidikan No. 123, Desa Maju"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Nama Kelas / Kelompok</label>
+      <input type="text" id="inpKelas" class="form-control" placeholder="Contoh: Kelas 3.1">
+    </div>
+    <div class="form-group">
+      <label>Daftar Nama Murid (Pisahkan dengan Enter)</label>
+      <textarea id="inpMurid" class="form-control" placeholder="Ali\nBudi\nSiti"></textarea>
+    </div>
+    
+    <button class="btn-primary" onclick="mulaiAplikasi()">Mulai Aplikasi</button>
+    
+    <!-- Tombol Tambahan untuk Langsung Import Data -->
+    <div style="text-align: center; margin: 15px 0; font-size: 12px; color: var(--muted); font-weight: bold;">--- ATAU ---</div>
+    <button class="btn-primary" style="background:#1976d2; margin-top:0;" onclick="document.getElementById('inpImportJSON').click()">📥 Import Data JSON (Lewati Pengisian)</button>
+  </div>
+</div>
+
+<!-- APLIKASI UTAMA -->
+<div id="mainApp" class="app-container hidden">
+  <header id="mainHeader">
+    <div id="canvas-container"></div>
+    <div class="header-left">
+      <img id="headFoto" class="header-photo" src="">
+      <div class="header-titles">
+        <b id="headGuru">Nama Guru</b>
+        <small id="headSekolahKelas">Sekolah - Kelas</small>
+      </div>
+    </div>
+    <div class="date-picker-wrap">
+      <label>TANGGAL REKAP</label>
+      <input type="date" id="inpTanggal" class="date-picker" onchange="gantiTanggal()">
+    </div>
+  </header>
+
+  <div class="workspace" id="workspace">
+    <div class="sheet-wrapper">
+      <div class="sheet" id="sheet">
+        <!-- Kop Surat Resmi -->
+        <div class="export-header" id="exportHeader">
+          <div class="kop-atas">
+            <div class="kop-kiri"><img id="exLogo" class="kop-logo" src=""></div>
+            <div class="kop-tengah">
+              <h1 id="exSekolah">NAMA SEKOLAH</h1>
+              <p id="exAlamat" class="alamat">Alamat Sekolah</p>
+              <p class="judul">Jurnal Laporan Progres Hafalan Murid - Kelas <b id="exKelas"></b></p>
+            </div>
+            <div class="kop-kanan">
+              <img id="exGuruFoto" class="kop-foto" src="">
+              <div id="exGuruName" class="kop-guru-name">Nama Guru</div>
+            </div>
+          </div>
+          <div class="kop-bawah">
+            <span>Tanggal: <span id="exTanggal" style="color:var(--green)"></span></span>
+          </div>
+        </div>
+        
+        <table id="dataTable">
+          <!-- Tabel dirender JS -->
+        </table>
+
+        <!-- Legenda Keterangan Nilai (Hanya muncul saat difoto) -->
+        <div class="export-footer" id="exportFooter">
+          <div class="leg-item"><span class="leg-mark good">✓</span> <span id="legGoodText">Lancar</span></div>
+          <div class="leg-item"><span class="leg-mark mid">B</span> <span id="legMidText">Baik</span></div>
+          <div class="leg-item"><span class="leg-mark bad">-b</span> <span id="legBadText">Belum lancar</span></div>
+          <div class="leg-item"><span class="leg-mark note">✕</span> <span id="legNoteText">Absen</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BAR NAVIGASI BAWAH -->
+  <div class="bottom-bar">
+    <button class="nav-item" onclick="bukaPanduan()">
+      <div class="icon">📖</div><span>Panduan</span>
+    </button>
+    <button class="nav-item" onclick="bukaFilter()">
+      <div class="icon">🔍</div><span>Pencarian</span>
+    </button>
+    <button class="nav-item action" onclick="bagikanFoto()">
+      <div class="icon">📸</div><span>Bagikan</span>
+    </button>
+    <button class="nav-item" onclick="bukaPengaturan()">
+      <div class="icon">⚙️</div><span>Setelan</span>
+    </button>
+  </div>
+</div>
+
+<!-- OVERLAY & MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal">
+    <div class="modal-head">
+      <b id="modalTitle">Judul</b>
+      <button class="close-btn" onclick="tutupModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="loading-screen" id="loadingScreen">
+  <div class="spinner"></div>
+  <span id="loadingText" style="margin-bottom:8px">Menyiapkan Foto Laporan...</span>
+  <small style="font-weight:normal; opacity:0.8">Jangan tutup layar, sedang memproses.</small>
+</div>
+
+<div class="toast" id="toast">Notifikasi</div>
+<input type="file" id="inpImportJSON" accept=".json" class="hidden" onchange="prosesImportJSON(event)">
+
+<script>
+'use strict';
+
+// --- DATA DEFAULT ---
+const DEFAULT_SURAHS = [
+ { id: "s1", name: "Al-Lail", ranges: ["1-4","5-7","8-10","11-14","15-18","19-21"] },
+ { id: "s2", name: "Asy-Syam", ranges: ["1-4","5-8","9-12","13-15"] },
+ { id: "s3", name: "Al-Balad", ranges: ["1-4","5-7","8-10","11-13","14-16","17-18","19-20"] }
+];
+
+function getAllCols() {
+  let cols = [];
+  state.surahs.forEach((surah) => {
+    surah.ranges.forEach((baris, rIdx) => { 
+      cols.push({ id: `${surah.id}_${rIdx}`, surah: surah.name, baris: baris }); 
+    });
+  });
+  return cols;
+}
+
+// --- STATE MANAGER ---
+const STORAGE_KEY = 'DataHafalan_Pro_AliAkbar'; 
+let state = {
+  setupDone: false,
+  guru: "", photo: "", logo: "", sekolah: "", alamat: "", kelas: "",
+  students: [], 
+  surahs: [...DEFAULT_SURAHS], 
+  legend: { good: "Lancar", mid: "Baik", bad: "Belum lancar", note: "Absen/Tidak masuk" }, 
+  noteIcon: "📌", 
+  bgHeader: 1, 
+  history: {}   
+};
+
+let currentDate = getTodayYMD();
+let filterTampil = 'all'; 
+let kataKunci = '';
+let currentSort = 'default';
+
+// --- SISTEM TEMA HEADER (THREE.JS 10 VARIASI) ---
+let animReqId = null;
+let thScene, thCamera, thRenderer;
+
+function initThreeBg(tipe) {
+  const container = document.getElementById('canvas-container');
+  if(!container) return;
+  container.innerHTML = '';
+  if (animReqId) cancelAnimationFrame(animReqId);
+  
+  if (tipe === 1 || !tipe) return; // Kosong / Bawaan
+
+  thScene = new THREE.Scene();
+  thCamera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+  thRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  thRenderer.setSize(container.clientWidth, container.clientHeight);
+  container.appendChild(thRenderer.domElement);
+
+  let geo, mat, mesh, points, group;
+  const clock = new THREE.Clock();
+
+  switch(tipe) {
+    case 2: // Islami: Cahaya Lailatul Qadar (Partikel Hijau Emas)
+        geo = new THREE.BufferGeometry();
+        const v2 = [];
+        for(let i=0; i<300; i++) v2.push(THREE.MathUtils.randFloatSpread(200), THREE.MathUtils.randFloatSpread(100), THREE.MathUtils.randFloatSpread(200));
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(v2, 3));
+        mat = new THREE.PointsMaterial({color: 0x8df0a1, size: 1.5, transparent:true, opacity:0.8});
+        points = new THREE.Points(geo, mat);
+        thScene.add(points);
+        thCamera.position.z = 80;
+        break;
+        
+    case 3: // Islami: Rotasi Kubus Emas
+        group = new THREE.Group();
+        for(let i=0; i<20; i++) {
+            geo = new THREE.BoxGeometry(4,4,4);
+            mat = new THREE.MeshBasicMaterial({color: 0xd4af37, wireframe: true, transparent:true, opacity:0.4});
+            mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(THREE.MathUtils.randFloatSpread(120), THREE.MathUtils.randFloatSpread(60), THREE.MathUtils.randFloatSpread(100));
+            mesh.rotation.set(Math.random(), Math.random(), Math.random());
+            group.add(mesh);
+        }
+        thScene.add(group);
+        thCamera.position.z = 50;
+        break;
+        
+    case 4: // Islami: Gelombang Gurun Pasir
+        geo = new THREE.PlaneGeometry(150, 60, 40, 15);
+        mat = new THREE.MeshBasicMaterial({color: 0xdeb887, wireframe: true, transparent:true, opacity:0.3});
+        mesh = new THREE.Mesh(geo, mat);
+        mesh.rotation.x = -Math.PI / 2; mesh.position.y = -5;
+        thScene.add(mesh);
+        thCamera.position.z = 20; thCamera.position.y = 5;
+        break;
+
+    case 5: // Maskulin: Matrix Hacking
+        geo = new THREE.BufferGeometry();
+        const v5 = [];
+        for(let i=0; i<500; i++) v5.push(THREE.MathUtils.randFloatSpread(150), Math.random()*100 - 50, THREE.MathUtils.randFloatSpread(150));
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(v5, 3));
+        mat = new THREE.PointsMaterial({color: 0x00ff00, size: 1.2});
+        points = new THREE.Points(geo, mat);
+        thScene.add(points);
+        thCamera.position.z = 60;
+        break;
+
+    case 6: // Maskulin: Cyberpunk Grid
+        geo = new THREE.PlaneGeometry(200, 200, 30, 30);
+        mat = new THREE.MeshBasicMaterial({color: 0x00ffff, wireframe: true, transparent:true, opacity:0.25});
+        mesh = new THREE.Mesh(geo, mat);
+        mesh.rotation.x = -Math.PI / 2; mesh.position.y = -15;
+        thScene.add(mesh);
+        thCamera.position.z = 40; thCamera.position.y = -5;
+        break;
+
+    case 7: // Maskulin: Hujan Meteor
+        geo = new THREE.BufferGeometry();
+        const v7 = [];
+        for(let i=0; i<200; i++) v7.push(THREE.MathUtils.randFloatSpread(200), THREE.MathUtils.randFloatSpread(200), THREE.MathUtils.randFloatSpread(200));
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(v7, 3));
+        mat = new THREE.PointsMaterial({color: 0xffffff, size: 1.5});
+        points = new THREE.Points(geo, mat);
+        thScene.add(points);
+        thCamera.position.z = 80;
+        break;
+
+    case 8: // Feminim: Kelopak Sakura Gugur
+        geo = new THREE.BufferGeometry();
+        const v8 = [];
+        for(let i=0; i<300; i++) v8.push(THREE.MathUtils.randFloatSpread(150), Math.random()*100 - 50, THREE.MathUtils.randFloatSpread(150));
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(v8, 3));
+        mat = new THREE.PointsMaterial({color: 0xffb7c5, size: 2.5, transparent:true, opacity:0.8});
+        points = new THREE.Points(geo, mat);
+        thScene.add(points);
+        thCamera.position.z = 60;
+        break;
+
+    case 9: // Feminim: Kilau Bintang Ajaib
+        geo = new THREE.BufferGeometry();
+        const v9 = [];
+        for(let i=0; i<250; i++) v9.push(THREE.MathUtils.randFloatSpread(120), THREE.MathUtils.randFloatSpread(60), THREE.MathUtils.randFloatSpread(120));
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(v9, 3));
+        mat = new THREE.PointsMaterial({color: 0xffd700, size: 2.5, transparent:true});
+        points = new THREE.Points(geo, mat);
+        thScene.add(points);
+        thCamera.position.z = 50;
+        break;
+
+    case 10: // Feminim: Gelombang Pastel
+        geo = new THREE.PlaneGeometry(120, 40, 40, 15);
+        mat = new THREE.MeshBasicMaterial({color: 0xff9ce6, wireframe: true, transparent:true, opacity:0.4});
+        mesh = new THREE.Mesh(geo, mat);
+        mesh.rotation.x = -Math.PI / 2; mesh.position.y = -8;
+        thScene.add(mesh);
+        thCamera.position.z = 20; thCamera.position.y = 2;
+        break;
+  }
+
+  function animate() {
+    animReqId = requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
+
+    switch(tipe) {
+        case 2:
+            const pos2 = points.geometry.attributes.position.array;
+            for(let i=1; i<pos2.length; i+=3) {
+                pos2[i] += 0.1;
+                if(pos2[i] > 50) pos2[i] = -50;
+            }
+            points.geometry.attributes.position.needsUpdate = true;
+            points.rotation.y += 0.001;
+            break;
+            
+        case 3:
+            group.rotation.y += 0.001;
+            group.rotation.x += 0.0005;
+            group.children.forEach(c => { c.rotation.x += 0.005; c.rotation.y += 0.005; });
+            break;
+            
+        case 4:
+            const pos4 = mesh.geometry.attributes.position;
+            for(let i=0; i<pos4.count; i++) {
+                pos4.setZ(i, Math.sin(pos4.getX(i)*0.05 + t)*3 + Math.cos(pos4.getY(i)*0.05 + t)*3);
+            }
+            pos4.needsUpdate = true;
+            break;
+
+        case 5:
+            const pos5 = points.geometry.attributes.position.array;
+            for(let i=1; i<pos5.length; i+=3) {
+                pos5[i] -= 0.6;
+                if(pos5[i] < -50) pos5[i] = 50;
+            }
+            points.geometry.attributes.position.needsUpdate = true;
+            break;
+
+        case 6:
+            mesh.position.z += 0.3;
+            if(mesh.position.z > 200/30) mesh.position.z = 0; 
+            break;
+
+        case 7:
+            const pos7 = points.geometry.attributes.position.array;
+            for(let i=0; i<pos7.length; i+=3) {
+                pos7[i] -= 3;
+                pos7[i+1] -= 3;
+                if(pos7[i] < -100) pos7[i] = 100;
+                if(pos7[i+1] < -100) pos7[i+1] = 100;
+            }
+            points.geometry.attributes.position.needsUpdate = true;
+            break;
+
+        case 8:
+            const pos8 = points.geometry.attributes.position.array;
+            for(let i=0; i<pos8.length; i+=3) {
+                pos8[i] -= 0.15;
+                pos8[i+1] -= 0.25;
+                if(pos8[i] < -75) pos8[i] = 75;
+                if(pos8[i+1] < -50) pos8[i+1] = 50;
+            }
+            points.geometry.attributes.position.needsUpdate = true;
+            points.rotation.y += 0.001;
+            break;
+
+        case 9:
+            mat.opacity = 0.5 + Math.sin(t*3)*0.5; 
+            points.rotation.y += 0.001;
+            break;
+
+        case 10:
+            const pos10 = mesh.geometry.attributes.position;
+            for(let i=0; i<pos10.count; i++) {
+                pos10.setZ(i, Math.sin(pos10.getX(i)*0.1 + t*1.5)*1.5 + Math.cos(pos10.getY(i)*0.1 + t*1.5)*1.5);
+            }
+            pos10.needsUpdate = true;
+            break;
+    }
+    thRenderer.render(thScene, thCamera);
+  }
+  animate();
+}
+
+window.addEventListener('resize', () => {
+    const container = document.getElementById('canvas-container');
+    if(container && thCamera && thRenderer) {
+        thCamera.aspect = container.clientWidth / container.clientHeight;
+        thCamera.updateProjectionMatrix();
+        thRenderer.setSize(container.clientWidth, container.clientHeight);
+    }
+});
+
+// --- FUNGSI KOMPRESI OTOMATIS ---
+function compressImageStr(base64, callback) {
+  if (!base64 || !base64.startsWith('data:image') || base64.length < 100000) {
+    callback(base64); return;
+  }
+  const img = new Image();
+  img.onload = function() {
+    const canvas = document.createElement('canvas');
+    let w = img.width, h = img.height;
+    const max = 300; 
+    if (w > max || h > max) {
+      if (w > h) { h = Math.round(h * max / w); w = max; }
+      else { w = Math.round(w * max / h); h = max; }
+    }
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    callback(canvas.toDataURL('image/jpeg', 0.8));
+  };
+  img.onerror = () => callback(base64);
+  img.src = base64;
+}
+
+function optimizeExistingImages() {
+  if (state.photo && state.photo.length > 100000) {
+    compressImageStr(state.photo, res => { state.photo = res; try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){} });
+  }
+  if (state.logo && state.logo.length > 100000) {
+    compressImageStr(state.logo, res => { state.logo = res; try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){} });
+  }
+}
+
+// --- MESIN MIGRASI CERDAS ---
+const savedData = localStorage.getItem(STORAGE_KEY);
+if(savedData) {
+  try { 
+    let parsedData = JSON.parse(savedData);
+    state = { ...state, ...parsedData };
+    
+    if(!state.surahs || state.surahs.length === 0) state.surahs = [...DEFAULT_SURAHS];
+    if(state.logo === undefined) state.logo = "";
+    if(state.alamat === undefined) state.alamat = "";
+    if(!state.legend || state.legend.mid === "Murajaah") state.legend = { good: "Lancar", mid: "Baik", bad: "Belum lancar", note: "Absen/Tidak masuk" };
+    if(!state.noteIcon || state.noteIcon === "★") state.noteIcon = "📌";
+    if(state.bgHeader === undefined) state.bgHeader = 1;
+    
+    optimizeExistingImages(); 
+  } catch(e) { console.error("Gagal memuat data lama."); }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch(e) {
+    console.error("Storage error:", e);
+    if(e.name === 'QuotaExceededError' || e.message.toLowerCase().includes('quota')) {
+      alert("Memori Browser Chrome Anda penuh (Batas 5MB)!\n\nSistem saat ini sedang mencoba memperkecil data secara otomatis. Tunggu 5 detik dan coba lagi.");
+      optimizeExistingImages();
+    } else {
+      showToast("Error sistem: " + e.message);
+    }
+  }
+}
+
+function getTodayYMD() {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+// --- INISIALISASI & SETUP ---
+if(!state.setupDone) {
+  document.getElementById('setupScreen').classList.remove('hidden');
+} else {
+  masukKeAplikasi();
+}
+
+function prosesGambar(event, tipe) {
+  const file = event.target.files[0];
+  if(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      compressImageStr(e.target.result, function(compressedStr) {
+        if(tipe === 'foto') {
+          state.photo = compressedStr;
+          if(document.getElementById('previewFoto')) document.getElementById('previewFoto').src = state.photo;
+          document.getElementById('headFoto').src = state.photo || BLANK_IMG;
+        } else {
+          state.logo = compressedStr;
+          if(document.getElementById('previewLogo')) document.getElementById('previewLogo').src = state.logo;
+        }
+        if(state.setupDone) { saveState(); showToast(tipe === 'foto' ? "Foto Guru Disimpan" : "Logo Disimpan"); }
+      });
+    }
+    reader.readAsDataURL(file);
+  }
+}
+
+function mulaiAplikasi() {
+  const guru = document.getElementById('inpGuru').value.trim();
+  const sek = document.getElementById('inpSekolah').value.trim();
+  const alam = document.getElementById('inpAlamat').value.trim();
+  const kel = document.getElementById('inpKelas').value.trim();
+  const mur = document.getElementById('inpMurid').value.trim();
+
+  if(!guru || !sek || !kel || !mur) { alert("Mohon isi semua data wajib dengan lengkap!"); return; }
+
+  const namaArray = mur.split('\n').map(n => n.trim()).filter(n => n !== "");
+  
+  state.guru = guru; state.sekolah = sek; state.kelas = kel; state.alamat = alam;
+  state.students = namaArray.map((nama, idx) => ({ id: Date.now() + idx, name: nama, nickname: '', notes: '' }));
+  state.bgHeader = 1;
+  
+  currentDate = getTodayYMD();
+  state.history[currentDate] = { marks: {} };
+  
+  state.setupDone = true;
+  saveState();
+  masukKeAplikasi();
+}
+
+const BLANK_IMG = "data:image/svg+xml;utf8,<svg viewBox='0 0 24 24' fill='%23eee'><rect width='24' height='24'/></svg>";
+
+function masukKeAplikasi() {
+  document.getElementById('setupScreen').classList.add('hidden');
+  document.getElementById('mainApp').classList.remove('hidden');
+  
+  document.getElementById('headGuru').textContent = state.guru;
+  document.getElementById('headSekolahKelas').textContent = `${state.sekolah} - ${state.kelas}`;
+  document.getElementById('headFoto').src = state.photo || BLANK_IMG;
+  
+  document.getElementById('inpTanggal').value = currentDate;
+  pastikanRiwayatTanggalAda(currentDate);
+  
+  initThreeBg(state.bgHeader); 
+  renderTabel();
+}
+
+// --- LOGIKA TANGGAL ---
+function pastikanRiwayatTanggalAda(tgl) {
+  if(!state.history[tgl]) {
+    const pastDates = Object.keys(state.history).filter(d => d < tgl).sort((a,b) => b.localeCompare(a));
+    if(pastDates.length > 0) {
+      state.history[tgl] = JSON.parse(JSON.stringify(state.history[pastDates[0]]));
+    } else {
+      state.history[tgl] = { marks: {} };
+    }
+  }
+}
+
+function gantiTanggal() {
+  const tglBaru = document.getElementById('inpTanggal').value;
+  if(tglBaru) {
+    currentDate = tglBaru;
+    pastikanRiwayatTanggalAda(currentDate);
+    saveState(); renderTabel();
+    showToast("Melihat data tanggal: " + formatTanggalIndo(currentDate));
+  }
+}
+
+function formatTanggalIndo(ymd) {
+  const d = new Date(ymd);
+  return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(d);
+}
+
+// --- FUNGSI BANTU HITUNG PERSEN ---
+function hitungPersen(stId, marks, totalCols) {
+  if(totalCols === 0) return 0;
+  const tuntas = getAllCols().filter(c => marks[`${stId}_${c.id}`] === 'good' || marks[`${stId}_${c.id}`] === 'mid').length;
+  return Math.round((tuntas / totalCols) * 100);
+}
+
+// --- RENDER TABEL ---
+function renderTabel() {
+  const marks = state.history[currentDate].marks;
+  const cols = getAllCols();
+  
+  let html = `<thead><tr>
+    <th class="num-head" rowspan="2">No</th>
+    <th class="name-head" rowspan="2">Nama Murid <br><small style="font-weight:normal">(Ketuk Nama)</small></th>`;
+  
+  state.surahs.forEach(s => { 
+    html += `<th class="surah" colspan="${s.ranges.length}">${escapeHTML(s.name)}</th>`; 
+  });
+  html += `<th class="mark-head" rowspan="2">%</th></tr><tr>`;
+  
+  state.surahs.forEach(s => {
+    s.ranges.forEach(r => { html += `<th class="cell-head">${escapeHTML(r)}</th>`; });
+  });
+  html += `</tr></thead><tbody>`;
+
+  let muridTampil = [...state.students];
+
+  if(kataKunci) {
+    muridTampil = muridTampil.filter(st => st.name.toLowerCase().includes(kataKunci) || (st.nickname && st.nickname.toLowerCase().includes(kataKunci)));
+  }
+  
+  muridTampil = muridTampil.filter(st => {
+    const marksMurid = cols.map(c => marks[`${st.id}_${c.id}`]).filter(v => v);
+    if(filterTampil === 'good') return marksMurid.includes('good');
+    if(filterTampil === 'bad') return marksMurid.includes('bad') || marksMurid.length === 0;
+    return true;
+  });
+
+  if(currentSort === 'az') {
+    muridTampil.sort((a,b) => a.name.localeCompare(b.name));
+  } else if(currentSort === 'za') {
+    muridTampil.sort((a,b) => b.name.localeCompare(a.name));
+  } else if(currentSort === 'nick_az') {
+    muridTampil.sort((a,b) => (a.nickname || a.name).localeCompare(b.nickname || b.name));
+  } else if(currentSort === 'nick_za') {
+    muridTampil.sort((a,b) => (b.nickname || b.name).localeCompare(a.nickname || a.name));
+  } else if(currentSort === 'high') {
+    muridTampil.sort((a,b) => hitungPersen(b.id, marks, cols.length) - hitungPersen(a.id, marks, cols.length));
+  } else if(currentSort === 'low') {
+    muridTampil.sort((a,b) => hitungPersen(a.id, marks, cols.length) - hitungPersen(b.id, marks, cols.length));
+  }
+
+  if(muridTampil.length === 0) {
+    html += `<tr><td colspan="${cols.length + 3}" style="padding:30px; text-align:center; color:var(--muted)">Data tidak ditemukan.</td></tr>`;
+  }
+
+  muridTampil.forEach((st, index) => {
+    const total = cols.length;
+    const lancar = cols.filter(c => marks[`${st.id}_${c.id}`] === 'good').length;
+    const baik = cols.filter(c => marks[`${st.id}_${c.id}`] === 'mid').length;
+    const totalTuntas = lancar + baik;
+    const persen = total === 0 ? 0 : Math.round((totalTuntas / total) * 100);
+    
+    const iconCatatan = st.notes ? `<span style="color:#b71c1c; font-size:14px; margin-left:4px" title="Ada Catatan">${escapeHTML(state.noteIcon)}</span>` : '';
+
+    html += `<tr>
+      <td class="num-cell">${index + 1}</td>
+      <td class="name-cell" data-studentid="${st.id}">
+        <div class="student-name">
+          <span class="nama-tampil">${escapeHTML(st.nickname || st.name)}</span>
+          <span class="nama-ekspor" style="display:none;">${escapeHTML(st.name)}</span>
+          ${iconCatatan}
+        </div>
+        <div class="subtext">${state.legend.good}/${state.legend.mid}: ${totalTuntas}/${total}</div>
+      </td>`;
+
+    cols.forEach(c => {
+      const key = `${st.id}_${c.id}`;
+      const mark = marks[key] || '';
+      const text = mark === 'good' ? '✓' : mark === 'mid' ? 'B' : mark === 'bad' ? '-b' : mark === 'note' ? '✕' : '';
+      html += `<td class="cell ${mark}" data-key="${key}"><span class="mark">${text}</span></td>`;
+    });
+
+    html += `<td><b>${persen}%</b></td></tr>`;
+  });
+
+  html += `</tbody>`;
+  document.getElementById('dataTable').innerHTML = html;
+}
+
+function escapeHTML(str) { return str.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag)); }
+
+// --- KLIK TABEL ---
+document.getElementById('dataTable').addEventListener('click', function(e) {
+  const cell = e.target.closest('.cell[data-key]');
+  if(cell) {
+    const key = cell.dataset.key;
+    const marks = state.history[currentDate].marks;
+    const current = marks[key];
+    
+    let next = 'good';
+    if(current === 'good') next = 'mid';
+    else if(current === 'mid') next = 'bad';
+    else if(current === 'bad') next = 'note';
+    else if(current === 'note') next = '';
+
+    if(next === '') delete marks[key]; else marks[key] = next;
+    saveState(); renderTabel();
+    return;
+  }
+
+  const nameCell = e.target.closest('.name-cell[data-studentid]');
+  if(nameCell) {
+    bukaProfilKecil(parseInt(nameCell.dataset.studentid));
+  }
+});
+
+// --- SISTEM MODAL ---
+function showModal(title, bodyHTML) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHTML;
+  document.getElementById('overlay').classList.add('show');
+}
+function tutupModal() {
+  document.getElementById('overlay').classList.remove('show');
+}
+document.getElementById('overlay').addEventListener('click', function(e) {
+  if(e.target === this) tutupModal();
+});
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// --- FITUR: PROFIL MURID ---
+function bukaProfilKecil(id) {
+  const st = state.students.find(s => s.id === id);
+  if(!st) return;
+
+  showModal('Edit Data Murid', `
+    <div style="margin-bottom:15px">
+      <label style="font-size:12px; font-weight:bold; color:var(--green)">Nama Lengkap Murid</label>
+      <input type="text" id="editNama" class="form-control" value="${escapeHTML(st.name)}">
+    </div>
+    <div style="margin-bottom:15px">
+      <label style="font-size:12px; font-weight:bold; color:var(--green)">Nama Panggilan (Di Tabel)</label>
+      <input type="text" id="editPanggilan" class="form-control" placeholder="Biarkan kosong jika sama" value="${escapeHTML(st.nickname || '')}">
+    </div>
+    <div style="margin-bottom:15px">
+      <label style="font-size:12px; font-weight:bold; color:var(--green)">Beri Catatan Khusus</label>
+      <p style="font-size:10px; color:gray; margin:0 0 5px 0">Jika diisi, logo penanda akan muncul di sebelah nama murid.</p>
+      <textarea id="editCatatan" class="form-control" placeholder="Tulis catatan hafalan di sini...">${escapeHTML(st.notes || '')}</textarea>
+    </div>
+    <button class="btn" id="btnSimpanMurid">Simpan Perubahan</button>
+    <button class="btn danger" id="btnHapusMurid" style="margin-top:10px">Keluarkan Murid dari Kelas</button>
+  `);
+
+  document.getElementById('btnSimpanMurid').onclick = () => {
+    st.name = document.getElementById('editNama').value.trim() || st.name;
+    st.nickname = document.getElementById('editPanggilan').value.trim();
+    st.notes = document.getElementById('editCatatan').value.trim();
+    saveState(); renderTabel(); tutupModal(); showToast('Tersimpan!');
+  };
+  document.getElementById('btnHapusMurid').onclick = () => {
+    if(confirm(`Yakin ingin mengeluarkan ${st.name} dari tabel?`)) {
+      state.students = state.students.filter(s => s.id !== id);
+      saveState(); renderTabel(); tutupModal(); showToast('Murid dihapus');
+    }
+  };
+}
+
+// --- FITUR: PANDUAN GURU ---
+function bukaPanduan() {
+  showModal('Buku Panduan Guru', `
+    <div class="guide-step">
+      <h4>👆 1. Cara Mengisi Nilai Hafalan</h4>
+      <p>Sentuh <b>kotak-kotak kosong (sel)</b> pada tabel berulang kali untuk mengubah status nilai hafalan anak. Urutannya adalah:<br>
+      <b style="color:#1b5e20">✓ ${state.legend.good}</b> ➔ <b style="color:#0d47a1">B ${state.legend.mid}</b> ➔ <b style="color:#b71c1c">-b ${state.legend.bad}</b> ➔ <b style="color:#424242">✕ ${state.legend.note}</b> ➔ (Kosong)</p>
+    </div>
+    <div class="guide-step">
+      <h4>↔️ 2. Tabel Lega (Anti-Patah)</h4>
+      <p>Tabel ini menggunakan sistem gulir halus. Header Surah & Ayat akan menempel di atas agar Anda tidak tersesat. Sedangkan nama anak akan terus mendaki dan <b>menutupi header</b> saat Anda menggulir ke bawah agar lebih rapi.</p>
+    </div>
+    <div class="guide-step" style="border:none">
+      <h4>✨ 3. Header Animasi Tiga Dimensi</h4>
+      <p>Bosan dengan header hijau biasa? Anda dapat mengaktifkan <b>Animasi Latar Three.js (10 Tema)</b> pada menu Setelan!</p>
+    </div>
+  `);
+}
+
+function bukaFilter() {
+  showModal('Pencarian & Urutkan', `
+    <div class="card" style="background:#e8f5e9; border-color:var(--green)">
+      <label style="font-size:12px; font-weight:bold; color:var(--green)">Urutkan Tabel:</label>
+      <select id="inpSort" class="form-control" style="font-size:13px; margin-top:5px; padding:8px" onchange="terapkanSortir(this.value)">
+        <option value="default" ${currentSort === 'default' ? 'selected' : ''}>Urutan Asli (Waktu Ditambahkan)</option>
+        <option value="nick_az" ${currentSort === 'nick_az' ? 'selected' : ''}>Abjad Nama Panggilan (A - Z)</option>
+        <option value="nick_za" ${currentSort === 'nick_za' ? 'selected' : ''}>Abjad Nama Panggilan (Z - A)</option>
+        <option value="az" ${currentSort === 'az' ? 'selected' : ''}>Abjad Nama Lengkap (A - Z)</option>
+        <option value="za" ${currentSort === 'za' ? 'selected' : ''}>Abjad Nama Lengkap (Z - A)</option>
+        <option value="high" ${currentSort === 'high' ? 'selected' : ''}>Nilai Persentase (%) Tertinggi</option>
+        <option value="low" ${currentSort === 'low' ? 'selected' : ''}>Nilai Persentase (%) Terendah</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <label style="font-size:12px; font-weight:bold;">Cari Nama Spesifik:</label>
+      <input type="text" id="inpCari" class="form-control" placeholder="Ketik nama murid..." value="${kataKunci}" style="margin-top:5px">
+    </div>
+
+    <div class="card">
+      <label style="font-size:12px; font-weight:bold; margin-bottom:10px; display:block">Saring Kategori Nilai:</label>
+      <button class="btn ${filterTampil === 'all' ? '' : 'alt'}" onclick="setFilter('all')">Tampilkan Semua Murid</button>
+      <button class="btn ${filterTampil === 'good' ? '' : 'alt'}" onclick="setFilter('good')">Hanya murid yang "${state.legend.good}"</button>
+      <button class="btn ${filterTampil === 'bad' ? '' : 'alt'}" onclick="setFilter('bad')">Hanya murid yang Belum / Kosong</button>
+    </div>
+  `);
+  document.getElementById('inpCari').addEventListener('input', e => {
+    kataKunci = e.target.value.toLowerCase(); renderTabel();
+  });
+}
+
+function terapkanSortir(val) { currentSort = val; renderTabel(); }
+function setFilter(tipe) { filterTampil = tipe; renderTabel(); tutupModal(); }
+
+// --- FITUR: PENGATURAN UMUM ---
+function bukaPengaturan() {
+  showModal('Setelan Aplikasi', `
+    <div class="card" style="background:#f3e5f5; border-color:#ce93d8; margin-bottom:8px">
+      <b style="color:#6a1b9a; font-size:13px">🌌 Animasi Header (Three.js)</b>
+      <select id="selBgHeader" class="form-control" style="font-size:13px; margin-top:5px; padding:8px" onchange="ubahBgHeader(this.value)">
+        <option value="1" ${state.bgHeader === 1 ? 'selected' : ''}>1. Kosong (Warna Bawaan)</option>
+        <option disabled>--- TEMA ISLAMI ---</option>
+        <option value="2" ${state.bgHeader === 2 ? 'selected' : ''}>2. Cahaya Lailatul Qadar</option>
+        <option value="3" ${state.bgHeader === 3 ? 'selected' : ''}>3. Rotasi Kubus Ka'bah</option>
+        <option value="4" ${state.bgHeader === 4 ? 'selected' : ''}>4. Gelombang Gurun Pasir</option>
+        <option disabled>--- TEMA MASKULIN ---</option>
+        <option value="5" ${state.bgHeader === 5 ? 'selected' : ''}>5. Matrix Hacking (Hijau)</option>
+        <option value="6" ${state.bgHeader === 6 ? 'selected' : ''}>6. Cyberpunk Grid (Biru)</option>
+        <option value="7" ${state.bgHeader === 7 ? 'selected' : ''}>7. Hujan Meteor (Putih)</option>
+        <option disabled>--- TEMA FEMINIM ---</option>
+        <option value="8" ${state.bgHeader === 8 ? 'selected' : ''}>8. Kelopak Sakura Gugur</option>
+        <option value="9" ${state.bgHeader === 9 ? 'selected' : ''}>9. Kilau Bintang Ajaib</option>
+        <option value="10" ${state.bgHeader === 10 ? 'selected' : ''}>10. Gelombang Pastel Pink</option>
+      </select>
+    </div>
+    <div class="card" style="background:#e8f5e9; border-color:var(--green); margin-bottom:8px">
+      <b style="color:var(--green)">⚙️ Kustomisasi Surah & Ayat</b>
+      <button class="btn" onclick="kelolaSurah()" style="margin-top:8px">Kelola Surah</button>
+    </div>
+    <div class="card" style="background:#fff9c4; border-color:#fbc02d; margin-bottom:8px">
+      <b style="color:#f57f17">📝 Ubah Keterangan Nilai</b>
+      <button class="btn alt" onclick="ubahKeterangan()" style="margin-top:8px">Edit Arti Nilai & Logo</button>
+    </div>
+    <div class="card">
+      <label style="font-size:12px; font-weight:bold;">Tambah Murid Baru</label>
+      <input type="text" id="inpMuridBaru" class="form-control" placeholder="Ketik nama murid...">
+      <button class="btn alt" id="btnTambah" style="margin-top:8px">Tambah Murid</button>
+    </div>
+    <div class="card">
+      <b style="font-size:13px">Ubah Info, Alamat & Foto</b>
+      <button class="btn alt" onclick="ubahIdentitas()" style="margin-top:8px">Ubah Kop Surat, Logo & Foto Guru</button>
+    </div>
+    <div class="card" style="background:#e3f2fd; border-color:#90caf9; margin-bottom:8px">
+      <b style="color:#0d47a1; font-size:13px">💾 Backup & Pulihkan Data</b>
+      <button class="btn" onclick="exportJSON()" style="margin-top:8px; background:#1976d2">Export Data (JSON)</button>
+      <button class="btn" onclick="document.getElementById('inpImportJSON').click()" style="margin-top:8px; background:#1565c0">Import Data (JSON)</button>
+    </div>
+    <div class="card" style="border-color:#a94a43">
+      <b style="color:#a94a43; font-size:13px">Reset Total Kelas</b>
+      <button class="btn danger" onclick="resetTotal()" style="margin-top:8px">Hapus Semua Data!</button>
+    </div>
+  `);
+  
+  document.getElementById('btnTambah').onclick = () => {
+    const nm = document.getElementById('inpMuridBaru').value.trim();
+    if(nm) {
+      state.students.push({ id: Date.now(), name: nm, nickname: '', notes: '' });
+      saveState(); renderTabel(); tutupModal(); showToast('Murid Ditambah');
+    }
+  };
+}
+
+function ubahBgHeader(val) {
+  state.bgHeader = parseInt(val);
+  saveState();
+  initThreeBg(state.bgHeader);
+}
+
+// --- FITUR: UBAH LEGENDA (KETERANGAN & LOGO) ---
+function ubahKeterangan() {
+  showModal('Keterangan & Logo', `
+    <p style="font-size:11px; color:gray; margin-top:0">Teks keterangan akan muncul di bagian bawah Laporan (Kaki Tabel).</p>
+    <div class="form-group">
+      <label style="color:#1b5e20"><b style="font-size:16px">✓</b> (Warna Hijau)</label>
+      <input type="text" id="legGood" class="form-control" value="${escapeHTML(state.legend.good)}">
+    </div>
+    <div class="form-group">
+      <label style="color:#0d47a1"><b style="font-size:16px">B</b> (Warna Biru)</label>
+      <input type="text" id="legMid" class="form-control" value="${escapeHTML(state.legend.mid)}">
+    </div>
+    <div class="form-group">
+      <label style="color:#b71c1c"><b style="font-size:16px">-b</b> (Warna Merah)</label>
+      <input type="text" id="legBad" class="form-control" value="${escapeHTML(state.legend.bad)}">
+    </div>
+    <div class="form-group" style="margin-bottom:20px">
+      <label style="color:#424242"><b style="font-size:16px">✕</b> (Warna Abu-abu)</label>
+      <input type="text" id="legNote" class="form-control" value="${escapeHTML(state.legend.note)}">
+    </div>
+    
+    <div class="form-group" style="border-top:1px solid #ddd; padding-top:15px">
+      <label style="color:#b71c1c"><b>Ikon Penanda Catatan</b></label>
+      <p style="font-size:11px; color:gray; margin:0 0 5px 0">Ikon yang muncul di nama murid jika mereka diberi Catatan Khusus. (Contoh Default: 📌)</p>
+      <input type="text" id="ikonCatatan" class="form-control" value="${escapeHTML(state.noteIcon)}" maxlength="3">
+    </div>
+
+    <button class="btn" onclick="simpanKeterangan()">Simpan Perubahan</button>
+    <button class="btn alt" onclick="bukaPengaturan()">Kembali</button>
+  `);
+}
+
+function simpanKeterangan() {
+  state.legend.good = document.getElementById('legGood').value.trim() || "Lancar";
+  state.legend.mid = document.getElementById('legMid').value.trim() || "Baik";
+  state.legend.bad = document.getElementById('legBad').value.trim() || "Belum lancar";
+  state.legend.note = document.getElementById('legNote').value.trim() || "Absen";
+  state.noteIcon = document.getElementById('ikonCatatan').value.trim() || "📌";
+  
+  saveState(); renderTabel();
+  bukaPengaturan();
+  showToast("Keterangan & Logo disimpan!");
+}
+
+// --- FITUR: UBAH SURAH ---
+function kelolaSurah() {
+  let html = `<div style="max-height:200px; overflow-y:auto; margin-bottom:15px; border:1px solid var(--line); border-radius:8px; padding:10px; background:#fff">`;
+  if(state.surahs.length === 0) {
+    html += `<p style="font-size:12px; color:var(--muted); text-align:center">Belum ada Surah.</p>`;
+  } else {
+    state.surahs.forEach((s, idx) => {
+      html += `
+      <div class="surah-item">
+        <div>
+          <b style="font-size:14px">${escapeHTML(s.name)}</b>
+          <div style="font-size:10px; color:var(--muted)">Ayat: ${escapeHTML(s.ranges.join(', '))}</div>
+        </div>
+        <button class="btn-small danger" onclick="hapusSurah(${idx})">Hapus</button>
+      </div>`;
+    });
+  }
+  html += `</div>
+  <div class="card" style="background:#f9f9f9">
+    <b style="font-size:13px; color:var(--green)">Tambah Kolom Surah</b>
+    <input type="text" id="newSurahName" class="form-control" placeholder="Nama Surah (cth: Al-Mulk)" style="margin:8px 0; font-size:13px">
+    <label style="font-size:11px; color:gray">Pembagian Ayat (Pisahkan dengan koma):</label>
+    <input type="text" id="newSurahRanges" class="form-control" placeholder="Cth: 1-5, 6-10, 11-15" style="margin-bottom:10px; font-size:13px">
+    <button class="btn" onclick="simpanSurahBaru()">Tambahkan Surah</button>
+  </div>
+  <button class="btn alt" onclick="bukaPengaturan()">Kembali</button>`;
+  
+  showModal('Kelola Surah & Ayat', html);
+}
+
+function simpanSurahBaru() {
+  const name = document.getElementById('newSurahName').value.trim();
+  const rangesStr = document.getElementById('newSurahRanges').value.trim();
+  if(!name || !rangesStr) { alert("Nama Surah dan Ayat harus diisi!"); return; }
+  const ranges = rangesStr.split(',').map(r => r.trim()).filter(r => r !== "");
+  
+  if(ranges.length > 0) {
+    state.surahs.push({ id: "s_" + Date.now(), name: name, ranges: ranges });
+    saveState(); renderTabel(); kelolaSurah(); showToast("Surah ditambah!");
+  }
+}
+
+function hapusSurah(idx) {
+  if(confirm("Yakin hapus kolom Surah ini?")) {
+    state.surahs.splice(idx, 1);
+    saveState(); renderTabel(); kelolaSurah();
+  }
+}
+
+// --- FITUR: UBAH IDENTITAS & FOTO ---
+function ubahIdentitas() {
+  showModal('Info Sekolah & Foto', `
+    <div class="form-group">
+      <label style="font-size:12px">Ubah Logo Sekolah</label>
+      <input type="file" accept="image/*" class="form-control" style="font-size:12px; padding:8px" onchange="prosesGambar(event, 'logo')">
+    </div>
+    <div class="form-group" style="border-bottom:1px solid #ddd; padding-bottom:15px">
+      <label style="font-size:12px">Ubah Foto Guru</label>
+      <input type="file" accept="image/*" class="form-control" style="font-size:12px; padding:8px" onchange="prosesGambar(event, 'foto')">
+    </div>
+    <div class="form-group">
+      <label>Nama Guru Pengajar</label>
+      <input type="text" id="eGuru" class="form-control" value="${escapeHTML(state.guru)}">
+    </div>
+    <div class="form-group">
+      <label>Instansi / Sekolah (Kop Surat)</label>
+      <input type="text" id="eSekolah" class="form-control" value="${escapeHTML(state.sekolah)}">
+    </div>
+    <div class="form-group">
+      <label>Alamat Sekolah</label>
+      <textarea id="eAlamat" class="form-control" style="min-height:50px">${escapeHTML(state.alamat || '')}</textarea>
+    </div>
+    <div class="form-group">
+      <label>Kelas</label>
+      <input type="text" id="eKelas" class="form-control" value="${escapeHTML(state.kelas)}">
+    </div>
+    <button class="btn" onclick="simpanIdentitas()">Simpan Perubahan Info</button>
+    <button class="btn alt" onclick="bukaPengaturan()">Kembali</button>
+  `);
+}
+
+function simpanIdentitas() {
+  state.guru = document.getElementById('eGuru').value.trim() || state.guru;
+  state.sekolah = document.getElementById('eSekolah').value.trim() || state.sekolah;
+  state.alamat = document.getElementById('eAlamat').value.trim();
+  state.kelas = document.getElementById('eKelas').value.trim() || state.kelas;
+  saveState();
+  document.getElementById('headGuru').textContent = state.guru;
+  document.getElementById('headSekolahKelas').textContent = `${state.sekolah} - ${state.kelas}`;
+  bukaPengaturan();
+  showToast("Informasi Teks diperbarui!");
+}
+
+function resetTotal() {
+  if(confirm("PERINGATAN! Seluruh data murid dan hafalan akan HILANG SELAMANYA. Lanjut?")) {
+    if(confirm("Apakah Anda YAKIN 100%?")) {
+      localStorage.removeItem(STORAGE_KEY); location.reload();
+    }
+  }
+}
+
+// --- FITUR EKSPOR DAN IMPOR JSON ---
+function exportJSON() {
+  try {
+    const dataStr = JSON.stringify(state);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Backup_Hafalan_${currentDate}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Data berhasil diekspor!");
+  } catch (e) {
+    alert("Gagal mengekspor data: " + e.message);
+  }
+}
+
+function prosesImportJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const importedData = JSON.parse(e.target.result);
+      if (importedData && typeof importedData === 'object' && importedData.students) {
+        if (confirm("Peringatan: Data di aplikasi saat ini akan DITIMPA dengan data dari file backup. Anda yakin ingin melanjutkan?")) {
+          state = { ...state, ...importedData };
+          saveState();
+          alert("Data berhasil dipulihkan! Aplikasi akan dimuat ulang agar perubahan dapat diterapkan.");
+          location.reload();
+        }
+      } else {
+        alert("Format file JSON tidak valid atau rusak.");
+      }
+    } catch (error) {
+      alert("Gagal membaca file JSON: " + error.message);
+    }
+    event.target.value = ''; 
+  };
+  reader.readAsText(file);
+}
+
+// --- FITUR BAGIKAN FOTO ---
+function bagikanFoto() {
+  const sheet = document.getElementById('sheet');
+  const loading = document.getElementById('loadingScreen');
+  
+  // Reset Scroll sebelum jepret
+  document.getElementById('workspace').scrollLeft = 0;
+  document.getElementById('workspace').scrollTop = 0;
+  
+  // Siapkan Header (Kop Surat) & Legenda
+  document.getElementById('exSekolah').textContent = state.sekolah;
+  document.getElementById('exKelas').textContent = state.kelas;
+  document.getElementById('exGuruName').textContent = state.guru; 
+  document.getElementById('exTanggal').textContent = formatTanggalIndo(currentDate);
+  document.getElementById('exLogo').src = state.logo || BLANK_IMG;
+  document.getElementById('exGuruFoto').src = state.photo || BLANK_IMG;
+
+  const elAlamat = document.getElementById('exAlamat');
+  if(state.alamat) {
+      elAlamat.style.display = 'block';
+      elAlamat.textContent = state.alamat;
+  } else {
+      elAlamat.style.display = 'none';
+  }
+
+  document.getElementById('legGoodText').textContent = state.legend.good;
+  document.getElementById('legMidText').textContent = state.legend.mid;
+  document.getElementById('legBadText').textContent = state.legend.bad;
+  document.getElementById('legNoteText').textContent = state.legend.note;
+  
+  sheet.classList.add('exporting');
+  loading.style.display = 'flex';
+  tutupModal();
+
+  setTimeout(() => {
+    html2canvas(sheet, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+      sheet.classList.remove('exporting');
+      loading.style.display = 'none';
+      
+      canvas.toBlob(blob => {
+        const file = new File([blob], `Laporan_Hafalan_${currentDate}.jpg`, { type: 'image/jpeg' });
+        
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({
+            title: 'Laporan Hafalan Resmi',
+            files: [file]
+          }).catch(e => { 
+             console.log("Share batal atau ditolak HP:", e);
+             unduhManual(blob, "Gagal membuka menu Share. Foto otomatis disimpan ke Galeri HP Anda.");
+          });
+        } else {
+          unduhManual(blob, "HP Anda tidak mendukung Share otomatis. Foto telah diunduh ke Galeri.");
+        }
+      }, 'image/jpeg', 0.9);
+    }).catch(err => {
+      sheet.classList.remove('exporting');
+      loading.style.display = 'none';
+      alert("Maaf, terjadi kesalahan saat memotret tabel. Pastikan memori HP cukup.");
+    });
+  }, 600); 
+}
+
+function unduhManual(blob, pesanToast) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Laporan_Hafalan_${state.kelas}_${currentDate}.jpg`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(pesanToast || "Foto Laporan Resmi diunduh ke Galeri.");
+}
+</script>
+</body>
+</html>
